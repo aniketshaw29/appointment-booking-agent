@@ -19,3 +19,6 @@ GOOGLE_CALENDAR_ID = _require("GOOGLE_CALENDAR_ID")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "Our Business")
 BUSINESS_HOURS = os.getenv("BUSINESS_HOURS", "Monday-Friday, 9am-5pm")
 APPOINTMENT_DURATION_MINUTES = int(os.getenv("APPOINTMENT_DURATION_MINUTES", "60"))
+
+# Optional — set this to validate that webhooks are from Telegram (recommended in production)
+TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")

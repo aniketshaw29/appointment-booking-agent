@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: appointment-booking-agent
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_FILE
+        value: credentials/service_account.json
+      - key: GOOGLE_CALENDAR_ID
+        sync: false
+      - key: BUSINESS_NAME
+        sync: false
+      - key: BUSINESS_HOURS
+        value: Monday-Friday, 9am-5pm
+      - key: APPOINTMENT_DURATION_MINUTES
+        value: "60"
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
