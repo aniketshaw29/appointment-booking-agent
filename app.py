@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify
+import json
+from datetime import datetime
+
 import config
 from telephony.telegram_sender import send_message
 from calendar_service.db import init_db, get_or_create_session, save_session, create_booking
+from calendar_service.google_cal import check_availability, create_event, next_available_slot
 from agent.conversation import process_turn, reset_chat
 
 app = Flask(__name__)
@@ -27,44 +31,82 @@ def webhook():
     if not text:
         return jsonify(ok=True)
 
-    # Load or create session state
     session = get_or_create_session(chat_id)
 
-    # Handle /start — reset conversation
+    # /start resets the conversation
     if text == "/start":
         reset_chat(chat_id)
         save_session(chat_id, [], "COLLECT_NAME", None, None)
         send_message(chat_id, f"Hi! I can help you book an appointment at {config.BUSINESS_NAME}. What's your name?")
         return jsonify(ok=True)
 
-    # Process turn through Gemini
+    # Run the user message through Gemini
     try:
         response = process_turn(chat_id, text)
     except Exception:
         send_message(chat_id, "Sorry, something went wrong. Please try again.")
         return jsonify(ok=True)
 
+    name = response.extracted_name or session.get("name")
+    slot = response.proposed_slot or session.get("proposed_slot")
+    reply = response.reply_text
+
+    # --- calendar actions ---
+    if response.action == "check_availability" and slot:
+        try:
+            free = check_availability(slot)
+        except Exception:
+            free = None
+
+        if free is True:
+            reply = (
+                f"Great news — {_fmt(slot)} is available! "
+                f"Shall I confirm the booking for {name}? (yes/no)"
+            )
+        elif free is False:
+            alt = _safe_next_slot(slot)
+            if alt:
+                slot = alt
+                reply = (
+                    f"Sorry, that slot is taken. "
+                    f"The next available time is {_fmt(alt)} — would that work for you?"
+                )
+            else:
+                reply = "Sorry, I couldn't find a free slot in the next 7 days. Please try a different time."
+        else:
+            reply = "I had trouble checking the calendar. Please try again."
+
+    elif response.action == "book" and slot:
+        try:
+            event_id = create_event(name or "Guest", username, slot)
+            create_booking(chat_id, name or "Guest", username, slot, event_id)
+            reply = (
+                f"Done! Your appointment is confirmed for {_fmt(slot)}. "
+                f"A calendar invite has been created. See you then!"
+            )
+        except Exception:
+            reply = "I couldn't complete the booking. Please try again."
+
     # Persist updated session
-    import json
     history = json.loads(session.get("history", "[]"))
     history.append({"role": "user", "content": text})
-    history.append({"role": "assistant", "content": response.reply_text})
+    history.append({"role": "assistant", "content": reply})
 
-    save_session(
-        chat_id,
-        history,
-        response.action.upper(),
-        response.extracted_name or session.get("name"),
-        response.proposed_slot or session.get("proposed_slot"),
-    )
-
-    # If booking confirmed, save to DB
-    if response.action == "book" and response.proposed_slot:
-        name = response.extracted_name or session.get("name") or "Guest"
-        create_booking(chat_id, name, username, response.proposed_slot)
-
-    send_message(chat_id, response.reply_text)
+    save_session(chat_id, history, response.action.upper(), name, slot)
+    send_message(chat_id, reply)
     return jsonify(ok=True)
+
+
+def _fmt(iso: str) -> str:
+    dt = datetime.fromisoformat(iso)
+    return dt.strftime("%A, %d %B at %I:%M %p").replace(" 0", " ")
+
+
+def _safe_next_slot(from_iso: str) -> str | None:
+    try:
+        return next_available_slot(from_iso)
+    except Exception:
+        return None
 
 
 @app.route("/health", methods=["GET"])
