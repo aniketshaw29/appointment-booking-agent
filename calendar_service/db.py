@@ -49,6 +49,21 @@ def init_db() -> None:
                 UNIQUE(name, slot_dt)
             );
         """)
+        # Migrate existing DBs — safely add columns if they don't exist yet
+        _add_column_if_missing(con, "sessions", "age", "TEXT")
+        _add_column_if_missing(con, "sessions", "location", "TEXT")
+        _add_column_if_missing(con, "sessions", "nature", "TEXT")
+        _add_column_if_missing(con, "sessions", "purpose", "TEXT")
+        _add_column_if_missing(con, "bookings", "age", "TEXT")
+        _add_column_if_missing(con, "bookings", "location", "TEXT")
+        _add_column_if_missing(con, "bookings", "nature", "TEXT")
+        _add_column_if_missing(con, "bookings", "purpose", "TEXT")
+
+
+def _add_column_if_missing(con: sqlite3.Connection, table: str, column: str, col_type: str) -> None:
+    existing = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+    if column not in existing:
+        con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
 
 
 # ---------- session helpers ----------

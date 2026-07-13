@@ -1,9 +1,11 @@
 import json
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted, GoogleAPIError
 
 import config
 from agent.prompts import SYSTEM_PROMPT
 from agent.schemas import AgentResponse
+from errors import GeminiError, GeminiQuotaError, log_error
 
 genai.configure(api_key=config.GEMINI_API_KEY)
 
@@ -16,8 +18,6 @@ _model = genai.GenerativeModel(
     ),
 )
 
-# In-memory chat sessions keyed by chat_id.
-# Each value is a genai.ChatSession so Gemini maintains its own turn history.
 _chats: dict[int, genai.ChatSession] = {}
 
 
@@ -33,7 +33,19 @@ def reset_chat(chat_id: int) -> None:
 
 def process_turn(chat_id: int, user_text: str) -> AgentResponse:
     chat = _get_chat(chat_id)
-    response = chat.send_message(user_text)
+
+    try:
+        response = chat.send_message(user_text)
+    except ResourceExhausted as e:
+        log_error("Gemini quota exhausted", e)
+        raise GeminiQuotaError("Gemini free-tier quota exceeded") from e
+    except GoogleAPIError as e:
+        log_error("Gemini API error", e)
+        raise GeminiError(f"Gemini API error: {e}") from e
+    except Exception as e:
+        log_error("Unexpected error calling Gemini", e)
+        raise GeminiError(f"Unexpected Gemini error: {e}") from e
+
     raw = response.text.strip()
 
     # Strip markdown code fences if Gemini wraps the JSON
@@ -46,8 +58,8 @@ def process_turn(chat_id: int, user_text: str) -> AgentResponse:
     try:
         data = json.loads(raw)
         return AgentResponse(**data)
-    except Exception:
-        # Fallback: ask the user to rephrase
+    except (json.JSONDecodeError, ValueError):
+        # Gemini returned non-JSON — ask user to rephrase, don't crash
         return AgentResponse(
             reply_text="Sorry, I didn't quite catch that. Could you rephrase?",
             action="clarify",

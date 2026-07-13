@@ -4,6 +4,12 @@ import hmac
 from datetime import datetime
 
 import config
+from errors import (
+    GeminiQuotaError, GeminiError,
+    CalendarAuthError, CalendarError,
+    BookingConflictError,
+    MESSAGES, log_error, logger,
+)
 from telephony.telegram_sender import send_message
 from calendar_service.db import init_db, get_or_create_session, save_session, create_booking
 from calendar_service.google_cal import check_availability, create_event, next_available_slot
@@ -15,11 +21,11 @@ with app.app_context():
     init_db()
 
 
-def _verify_telegram(request) -> bool:
+def _verify_telegram(req) -> bool:
     secret = config.TELEGRAM_WEBHOOK_SECRET
     if not secret:
         return True
-    token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    token = req.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
     return hmac.compare_digest(token, secret)
 
 
@@ -45,6 +51,7 @@ def webhook():
 
     session = get_or_create_session(chat_id)
 
+    # ── Built-in commands ────────────────────────────────────────────────────
     if text == "/start":
         reset_chat(chat_id)
         save_session(chat_id, [], "COLLECT_NAME")
@@ -57,13 +64,34 @@ def webhook():
         send_message(chat_id, "No problem! Booking cancelled. Send /start to begin again.")
         return jsonify(ok=True)
 
-    try:
-        response = process_turn(chat_id, text)
-    except Exception:
-        send_message(chat_id, "Sorry, something went wrong. Please try again in a moment.")
+    if text == "/help":
+        send_message(chat_id, (
+            f"*{config.BUSINESS_NAME} Appointment Bot*\n\n"
+            f"Commands:\n"
+            f"/start — start a new booking\n"
+            f"/cancel — cancel current booking\n"
+            f"/help — show this message\n\n"
+            f"Business hours: {config.BUSINESS_HOURS}\n"
+            f"Appointment duration: {config.APPOINTMENT_DURATION_MINUTES} minutes"
+        ))
         return jsonify(ok=True)
 
-    # Carry forward all collected fields — keep whatever was already in session
+    # ── AI turn ──────────────────────────────────────────────────────────────
+    try:
+        response = process_turn(chat_id, text)
+    except GeminiQuotaError:
+        send_message(chat_id, MESSAGES["gemini_quota"])
+        return jsonify(ok=True)
+    except GeminiError as e:
+        log_error(f"Gemini failed for chat_id={chat_id}", e)
+        send_message(chat_id, MESSAGES["gemini_error"])
+        return jsonify(ok=True)
+    except Exception as e:
+        log_error(f"Unexpected error in process_turn for chat_id={chat_id}", e)
+        send_message(chat_id, MESSAGES["unknown"])
+        return jsonify(ok=True)
+
+    # Carry forward all collected fields
     name     = response.extracted_name     or session.get("name")
     age      = response.extracted_age      or session.get("age")
     location = response.extracted_location or session.get("location")
@@ -72,30 +100,36 @@ def webhook():
     slot     = response.proposed_slot      or session.get("proposed_slot")
     reply    = response.reply_text
 
-    # --- calendar actions ---
+    # ── Calendar actions ─────────────────────────────────────────────────────
     if response.action == "check_availability" and slot:
         try:
             free = check_availability(slot)
-        except Exception:
-            free = None
-
-        if free is True:
-            reply = (
-                f"Great news — {_fmt(slot)} is available! "
-                f"Shall I confirm the booking for {name}? (yes/no)"
-            )
-        elif free is False:
-            alt = _safe_next_slot(slot)
-            if alt:
-                slot = alt
+            if free:
                 reply = (
-                    f"Sorry, that slot is taken. "
-                    f"The next available time is {_fmt(alt)} — would that work for you?"
+                    f"Great news — {_fmt(slot)} is available! "
+                    f"Shall I confirm the booking for {name}? (yes/no)"
                 )
             else:
-                reply = "Sorry, no free slots in the next 7 days. Please try a different time."
-        else:
-            reply = "I had trouble checking the calendar. Please try again."
+                alt = next_available_slot(slot)
+                if alt:
+                    slot = alt
+                    reply = (
+                        f"Sorry, that slot is taken. "
+                        f"The next available time is {_fmt(alt)} — would that work for you?"
+                    )
+                else:
+                    reply = MESSAGES["no_slots"]
+
+        except BookingConflictError:
+            reply = MESSAGES["slot_in_past"]
+
+        except CalendarAuthError as e:
+            log_error(f"Calendar auth error for chat_id={chat_id}", e)
+            reply = MESSAGES["calendar_auth"]
+
+        except CalendarError as e:
+            log_error(f"Calendar error for chat_id={chat_id}", e)
+            reply = MESSAGES["calendar_error"]
 
     elif response.action == "book" and slot:
         try:
@@ -107,6 +141,8 @@ def webhook():
                 chat_id, name or "Guest", username, slot, event_id,
                 age=age, location=location, nature=nature, purpose=purpose
             )
+            logger.info("Booking confirmed: chat_id=%s name=%s slot=%s event_id=%s",
+                        chat_id, name, slot, event_id)
             reply = (
                 f"Done! Your appointment is confirmed for {_fmt(slot)}. "
                 f"A calendar invite has been created. See you then! 🎉\n\n"
@@ -116,13 +152,27 @@ def webhook():
             save_session(chat_id, [], "COLLECT_NAME")
             send_message(chat_id, reply)
             return jsonify(ok=True)
-        except Exception:
-            reply = "I couldn't complete the booking. Please try again."
+
+        except BookingConflictError:
+            reply = MESSAGES["slot_in_past"]
+
+        except CalendarAuthError as e:
+            log_error(f"Calendar auth error during booking for chat_id={chat_id}", e)
+            reply = MESSAGES["calendar_auth"]
+
+        except CalendarError as e:
+            log_error(f"Calendar error during booking for chat_id={chat_id}", e)
+            reply = MESSAGES["booking_failed"]
+
+        except Exception as e:
+            log_error(f"Unexpected booking error for chat_id={chat_id}", e)
+            reply = MESSAGES["booking_failed"]
 
     elif response.action == "done":
         reset_chat(chat_id)
         save_session(chat_id, [], "COLLECT_NAME")
 
+    # Persist session
     history = json.loads(session.get("history", "[]"))
     history.append({"role": "user", "content": text})
     history.append({"role": "assistant", "content": reply})
@@ -137,13 +187,6 @@ def webhook():
 def _fmt(iso: str) -> str:
     dt = datetime.fromisoformat(iso)
     return dt.strftime("%A, %d %B at %I:%M %p").replace(" 0", " ")
-
-
-def _safe_next_slot(from_iso: str) -> str | None:
-    try:
-        return next_available_slot(from_iso)
-    except Exception:
-        return None
 
 
 @app.route("/", methods=["GET"])
