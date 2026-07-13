@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, abort, render_template
+from flask import Flask, request, jsonify, abort, render_template, redirect, url_for, session
 import json
 import hmac
 from datetime import datetime
@@ -13,9 +13,13 @@ from errors import (
 from telephony.telegram_sender import send_message
 from calendar_service.db import init_db, get_or_create_session, save_session, create_booking
 from calendar_service.google_cal import check_availability, create_event, next_available_slot
-from agent.conversation import process_turn, reset_chat
+from agent.llm import process_turn, reset_chat, get_available_models
 
 app = Flask(__name__)
+app.secret_key = config.ADMIN_PASSWORD  # used for Flask session (admin login)
+
+# Runtime model state — starts from env var, admin can change without restart
+_active_model = config.ACTIVE_MODEL
 
 with app.app_context():
     init_db()
@@ -28,6 +32,8 @@ def _verify_telegram(req) -> bool:
     token = req.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
     return hmac.compare_digest(token, secret)
 
+
+# ── Telegram webhook ─────────────────────────────────────────────────────────
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
@@ -49,9 +55,8 @@ def webhook():
     if not text:
         return jsonify(ok=True)
 
-    session = get_or_create_session(chat_id)
+    sess = get_or_create_session(chat_id)
 
-    # ── Built-in commands ────────────────────────────────────────────────────
     if text == "/start":
         reset_chat(chat_id)
         save_session(chat_id, [], "COLLECT_NAME")
@@ -76,31 +81,28 @@ def webhook():
         ))
         return jsonify(ok=True)
 
-    # ── AI turn ──────────────────────────────────────────────────────────────
     try:
-        response = process_turn(chat_id, text)
+        response = process_turn(chat_id, text, model_id=_active_model)
     except GeminiQuotaError:
         send_message(chat_id, MESSAGES["gemini_quota"])
         return jsonify(ok=True)
     except GeminiError as e:
-        log_error(f"Gemini failed for chat_id={chat_id}", e)
+        log_error(f"LLM failed for chat_id={chat_id}", e)
         send_message(chat_id, MESSAGES["gemini_error"])
         return jsonify(ok=True)
     except Exception as e:
-        log_error(f"Unexpected error in process_turn for chat_id={chat_id}", e)
+        log_error(f"Unexpected error for chat_id={chat_id}", e)
         send_message(chat_id, MESSAGES["unknown"])
         return jsonify(ok=True)
 
-    # Carry forward all collected fields
-    name     = response.extracted_name     or session.get("name")
-    age      = response.extracted_age      or session.get("age")
-    location = response.extracted_location or session.get("location")
-    nature   = response.extracted_nature   or session.get("nature")
-    purpose  = response.extracted_purpose  or session.get("purpose")
-    slot     = response.proposed_slot      or session.get("proposed_slot")
+    name     = response.extracted_name     or sess.get("name")
+    age      = response.extracted_age      or sess.get("age")
+    location = response.extracted_location or sess.get("location")
+    nature   = response.extracted_nature   or sess.get("nature")
+    purpose  = response.extracted_purpose  or sess.get("purpose")
+    slot     = response.proposed_slot      or sess.get("proposed_slot")
     reply    = response.reply_text
 
-    # ── Calendar actions ─────────────────────────────────────────────────────
     if response.action == "check_availability" and slot:
         try:
             free = check_availability(slot)
@@ -119,14 +121,11 @@ def webhook():
                     )
                 else:
                     reply = MESSAGES["no_slots"]
-
         except BookingConflictError:
             reply = MESSAGES["slot_in_past"]
-
         except CalendarAuthError as e:
             log_error(f"Calendar auth error for chat_id={chat_id}", e)
             reply = MESSAGES["calendar_auth"]
-
         except CalendarError as e:
             log_error(f"Calendar error for chat_id={chat_id}", e)
             reply = MESSAGES["calendar_error"]
@@ -141,8 +140,8 @@ def webhook():
                 chat_id, name or "Guest", username, slot, event_id,
                 age=age, location=location, nature=nature, purpose=purpose
             )
-            logger.info("Booking confirmed: chat_id=%s name=%s slot=%s event_id=%s",
-                        chat_id, name, slot, event_id)
+            logger.info("Booking confirmed: chat_id=%s name=%s slot=%s model=%s",
+                        chat_id, name, slot, _active_model)
             reply = (
                 f"Done! Your appointment is confirmed for {_fmt(slot)}. "
                 f"A calendar invite has been created. See you then! 🎉\n\n"
@@ -152,18 +151,14 @@ def webhook():
             save_session(chat_id, [], "COLLECT_NAME")
             send_message(chat_id, reply)
             return jsonify(ok=True)
-
         except BookingConflictError:
             reply = MESSAGES["slot_in_past"]
-
         except CalendarAuthError as e:
             log_error(f"Calendar auth error during booking for chat_id={chat_id}", e)
             reply = MESSAGES["calendar_auth"]
-
         except CalendarError as e:
             log_error(f"Calendar error during booking for chat_id={chat_id}", e)
             reply = MESSAGES["booking_failed"]
-
         except Exception as e:
             log_error(f"Unexpected booking error for chat_id={chat_id}", e)
             reply = MESSAGES["booking_failed"]
@@ -172,8 +167,7 @@ def webhook():
         reset_chat(chat_id)
         save_session(chat_id, [], "COLLECT_NAME")
 
-    # Persist session
-    history = json.loads(session.get("history", "[]"))
+    history = json.loads(sess.get("history", "[]"))
     history.append({"role": "user", "content": text})
     history.append({"role": "assistant", "content": reply})
 
@@ -184,10 +178,56 @@ def webhook():
     return jsonify(ok=True)
 
 
-def _fmt(iso: str) -> str:
-    dt = datetime.fromisoformat(iso)
-    return dt.strftime("%A, %d %B at %I:%M %p").replace(" 0", " ")
+# ── Admin panel ──────────────────────────────────────────────────────────────
 
+@app.route("/admin", methods=["GET"])
+def admin():
+    if not session.get("admin_logged_in"):
+        return render_template("admin_login.html")
+    return render_template(
+        "admin.html",
+        active_model=_active_model,
+        models=get_available_models(),
+        business_name=config.BUSINESS_NAME,
+        openai_configured=bool(config.OPENAI_API_KEY),
+    )
+
+
+@app.route("/admin/login", methods=["POST"])
+def admin_login():
+    password = request.form.get("password", "")
+    if hmac.compare_digest(password, config.ADMIN_PASSWORD):
+        session["admin_logged_in"] = True
+        return redirect(url_for("admin"))
+    return render_template("admin_login.html", error="Incorrect password")
+
+
+@app.route("/admin/logout", methods=["POST"])
+def admin_logout():
+    session.pop("admin_logged_in", None)
+    return redirect(url_for("admin"))
+
+
+@app.route("/admin/set-model", methods=["POST"])
+def admin_set_model():
+    global _active_model
+    if not session.get("admin_logged_in"):
+        abort(403)
+    model_id = request.form.get("model_id", "")
+    from agent.llm import ALL_MODELS
+    if model_id not in ALL_MODELS:
+        return render_template("admin.html",
+            active_model=_active_model,
+            models=get_available_models(),
+            business_name=config.BUSINESS_NAME,
+            openai_configured=bool(config.OPENAI_API_KEY),
+            error=f"Unknown model: {model_id}")
+    _active_model = model_id
+    logger.info("Admin switched model to: %s", _active_model)
+    return redirect(url_for("admin"))
+
+
+# ── Public routes ─────────────────────────────────────────────────────────────
 
 @app.route("/", methods=["GET"])
 def index():
@@ -200,7 +240,12 @@ def index():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify(status="ok", business=config.BUSINESS_NAME)
+    return jsonify(status="ok", business=config.BUSINESS_NAME, model=_active_model)
+
+
+def _fmt(iso: str) -> str:
+    dt = datetime.fromisoformat(iso)
+    return dt.strftime("%A, %d %B at %I:%M %p").replace(" 0", " ")
 
 
 if __name__ == "__main__":

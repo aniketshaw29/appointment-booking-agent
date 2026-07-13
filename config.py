@@ -25,7 +25,16 @@ GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv(
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "Our Business")
 BUSINESS_HOURS = os.getenv("BUSINESS_HOURS", "Monday-Friday, 9am-5pm")
 _raw_duration = int(os.getenv("APPOINTMENT_DURATION_MINUTES", "30"))
-APPOINTMENT_DURATION_MINUTES = min(_raw_duration, 30)  # hard cap: 30 min per person
+APPOINTMENT_DURATION_MINUTES = min(_raw_duration, 30)
 
-# Optional — set this to validate that webhooks are from Telegram (recommended in production)
 TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+
+# OpenAI — optional, only needed if using GPT models
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+
+# Admin panel password — set via ADMIN_PASSWORD env var
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+
+# Active AI model — can be changed at runtime via /admin
+# Options: gemini-2.5-flash, gemini-2.0-flash, gpt-4o-mini, gpt-4o
+ACTIVE_MODEL = os.getenv("ACTIVE_MODEL", "gemini-2.5-flash")
