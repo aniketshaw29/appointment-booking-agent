@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0c14">
+  <title>{{ business_name }} — Book an Appointment</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0c14;
+      --surface:   #13141f;
+      --surface-2: #1a1c2c;
+      --border:    rgba(255,255,255,0.07);
+      --accent:    #4f8ef7;
+      --accent-2:  #38d9a9;
+      --text:      #e8ecf4;
+      --muted:     #7e8a9e;
+      --radius-lg: 20px;
+      --radius:    14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .glow-top {
+      position: fixed; top: -30vh; left: -15vw;
+      width: 70vw; height: 70vh;
+      background: radial-gradient(ellipse, rgba(79,142,247,.13) 0%, transparent 68%);
+      pointer-events: none; z-index: 0;
+    }
+    .glow-bottom {
+      position: fixed; bottom: -25vh; right: -15vw;
+      width: 65vw; height: 65vh;
+      background: radial-gradient(ellipse, rgba(56,217,169,.09) 0%, transparent 68%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .container {
+      position: relative; z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* HERO */
+    .hero { padding: 56px 0 44px; text-align: center; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(79,142,247,.1);
+      border: 1px solid rgba(79,142,247,.22);
+      border-radius: 100px;
+      padding: 5px 15px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+      animation: blink 2.2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .35; }
+    }
+
+    .hero-icon {
+      width: 84px; height: 84px;
+      margin: 0 auto 24px;
+      border-radius: 26px;
+      background: linear-gradient(140deg, #4f8ef7 0%, #38d9a9 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px;
+      box-shadow: 0 16px 56px rgba(79,142,247,.3);
+    }
+
+    h1 {
+      font-size: clamp(26px, 8vw, 38px);
+      font-weight: 800;
+      letter-spacing: -.035em;
+      line-height: 1.13;
+      margin-bottom: 16px;
+      background: linear-gradient(140deg, #ffffff 20%, #b8ccf5 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 360px;
+      margin: 0 auto 36px;
+      line-height: 1.75;
+    }
+
+    .hero-sub strong { color: var(--text); }
+
+    /* CTA */
+    .cta-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      width: 100%;
+      max-width: 330px;
+      background: linear-gradient(135deg, #4f8ef7 0%, #38d9a9 100%);
+      color: #fff;
+      text-decoration: none;
+      font-size: 16.5px;
+      font-weight: 700;
+      padding: 16px 32px;
+      border-radius: 100px;
+      box-shadow: 0 8px 40px rgba(79,142,247,.38);
+      transition: transform .18s ease, box-shadow .18s ease;
+      letter-spacing: -.01em;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cta-btn:active { transform: scale(.97); }
+
+    @media (hover: hover) {
+      .cta-btn:hover {
+        transform: translateY(-2px) scale(1.015);
+        box-shadow: 0 16px 56px rgba(79,142,247,.48);
+      }
+    }
+
+    .cta-btn svg { width: 21px; height: 21px; flex-shrink: 0; }
+
+    .countdown-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .countdown-row span { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .cancel-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .cancel-btn:hover { color: var(--text); }
+
+    /* DIVIDER */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 44px 0;
+    }
+
+    /* SECTION HEADER */
+    .section-eyebrow {
+      font-size: 11.5px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent-2);
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .section-heading {
+      font-size: clamp(21px, 6vw, 27px);
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: -.025em;
+      margin-bottom: 30px;
+      color: var(--text);
+    }
+
+    /* STEPS */
+    .steps { display: flex; flex-direction: column; gap: 14px; margin-bottom: 44px; }
+
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 16px; right: 16px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+    }
+
+    .step-num {
+      width: 46px; height: 46px; min-width: 46px;
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+
+    .step-body h3 {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 5px;
+      letter-spacing: -.015em;
+    }
+
+    .step-body p { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    .step-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    /* HOURS CARD */
+    .hours-card {
+      position: relative;
+      overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 20px;
+      text-align: center;
+      margin-bottom: 44px;
+    }
+
+    .hours-card::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(79,142,247,.055) 0%, rgba(56,217,169,.04) 100%);
+    }
+
+    .hours-card > * { position: relative; }
+
+    .hours-icon { font-size: 30px; display: block; margin-bottom: 12px; }
+    .hours-label { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+    .hours-time { font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: var(--text); line-height: 1.1; }
+    .hours-days { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+    .hours-pill {
+      display: inline-block;
+      margin-top: 16px;
+      background: rgba(56,217,169,.12);
+      border: 1px solid rgba(56,217,169,.2);
+      color: var(--accent-2);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 100px;
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 28px 0 max(40px, env(safe-area-inset-bottom, 40px));
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-name { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; letter-spacing: -.01em; }
+    footer p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
+    footer a:hover { text-decoration: underline; text-underline-offset: 2px; }
+    .footer-copy { margin-top: 18px; font-size: 11.5px; color: rgba(126,138,158,.55); }
+  </style>
+</head>
+<body>
+
+  <div class="glow-top"></div>
+  <div class="glow-bottom"></div>
+
+  <div class="container">
+
+    <section class="hero">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Telegram Bot
+      </div>
+
+      <div class="hero-icon">📅</div>
+
+      <h1>Book Your Appointment<br>in Seconds</h1>
+
+      <p class="hero-sub">
+        <strong>{{ business_name }}</strong> makes scheduling effortless.
+        Chat with the Telegram bot, pick your slot, and get an instant
+        confirmation — no calls, no forms.
+      </p>
+
+      <div class="cta-wrap">
+        <a href="https://t.me/aniketshaw_appointment_bot"
+           class="cta-btn"
+           id="ctaBtn">
+          <svg viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+          </svg>
+          Open in Telegram
+        </a>
+
+        <div class="countdown-row" id="countdownRow">
+          Redirecting in <span id="countNum">5</span>s &nbsp;
+          <button class="cancel-btn" id="cancelBtn" type="button">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <p class="section-eyebrow">Simple &amp; fast</p>
+      <h2 class="section-heading">How It Works</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">🚀</div>
+          <div class="step-body">
+            <span class="step-label">Step 1</span>
+            <h3>Start the Bot</h3>
+            <p>Open the link, tap <strong>Start</strong> in Telegram — the bot greets you instantly. No sign-up needed.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">💬</div>
+          <div class="step-body">
+            <span class="step-label">Step 2</span>
+            <h3>Answer a Few Questions</h3>
+            <p>Share your name, preferred date &amp; time, and the reason for your visit. The bot guides you in plain language.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">✅</div>
+          <div class="step-body">
+            <span class="step-label">Step 3</span>
+            <h3>Get Confirmed Instantly</h3>
+            <p>Receive a full confirmation right in Telegram with all your booking details. A calendar invite is created automatically.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="hours-card">
+      <span class="hours-icon">🕔</span>
+      <p class="hours-label">Booking Hours</p>
+      <p class="hours-time">{{ business_hours }}</p>
+      <span class="hours-pill">Appointments only during these hours</span>
+    </div>
+
+    <footer>
+      <p class="footer-name">{{ business_name }}</p>
+      <p>Telegram: <a href="https://t.me/aniketshaw_appointment_bot">@aniketshaw_appointment_bot</a></p>
+      <p class="footer-copy">Powered by a Telegram booking bot</p>
+    </footer>
+
+  </div>
+
+  <script>
+    (function () {
+      var BOT_URL   = 'https://t.me/aniketshaw_appointment_bot';
+      var numEl     = document.getElementById('countNum');
+      var rowEl     = document.getElementById('countdownRow');
+      var cancelBtn = document.getElementById('cancelBtn');
+      var ctaBtn    = document.getElementById('ctaBtn');
+      var count     = 5;
+      var cancelled = false;
+      var timer;
+
+      function tick() {
+        count -= 1;
+        if (cancelled) return;
+        if (count <= 0) {
+          clearInterval(timer);
+          window.location.href = BOT_URL;
+          return;
+        }
+        numEl.textContent = count;
+      }
+
+      timer = setInterval(tick, 1000);
+
+      cancelBtn.addEventListener('click', function () {
+        cancelled = true;
+        clearInterval(timer);
+        rowEl.style.display = 'none';
+      });
+
+      ctaBtn.addEventListener('click', function () {
+        cancelled = true;
+        clearInterval(timer);
+      });
+    })();
+  </script>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, render_template
 import json
 import hmac
 from datetime import datetime
@@ -144,6 +144,15 @@ def _safe_next_slot(from_iso: str) -> str | None:
         return next_available_slot(from_iso)
     except Exception:
         return None
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template(
+        "index.html",
+        business_name=config.BUSINESS_NAME,
+        business_hours=config.BUSINESS_HOURS,
+    )
 
 
 @app.route("/health", methods=["GET"])
