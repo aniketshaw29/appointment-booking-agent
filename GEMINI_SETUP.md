@@ -29,13 +29,13 @@ GEMINI_API_KEY=AIzaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ---
 
-## Free Tier Limits (as of 2026)
+## Free Tier Limits
 
 | Model | Requests/min | Requests/day |
 |---|---|---|
-| Gemini 1.5 Flash | 15 | 1,500 |
+| Gemini 2.0 Flash | 15 | 200 |
 
-More than enough for a learning/personal project.
+> If you hit the daily limit, create a new API key in AI Studio or wait until midnight Pacific time for it to reset.
 
 ---
 
@@ -48,7 +48,7 @@ os.environ["GEMINI_API_KEY"] = "your-key-here"
 
 import google.generativeai as genai
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")
 resp = model.generate_content("Say hello in one word")
 print(f"✅ Gemini response: {resp.text.strip()}")
 EOF
