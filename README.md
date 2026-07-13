@@ -5,7 +5,7 @@ An AI-powered appointment booking bot built with Telegram, Google Gemini, and Go
 **Live bot:** [@aniketshaw_appointment_bot](https://t.me/aniketshaw_appointment_bot)  
 **Live site:** [appointment-booking-agent-p748.onrender.com](https://appointment-booking-agent-p748.onrender.com)
 
-> **Future upgrade:** Swap Telegram for Twilio to turn this into a real phone calling agent. See [FUTURE_PHONE.md](FUTURE_PHONE.md).
+> **Future upgrade:** Swap Telegram for Twilio to turn this into a real phone calling agent. See [docs/FUTURE_PHONE.md](docs/FUTURE_PHONE.md).
 
 ---
 
@@ -74,8 +74,7 @@ appointment-booking-agent/
 ├── agent/
 │   ├── llm.py                    # Unified LLM router (Gemini + OpenAI)
 │   ├── prompts.py                # System prompt
-│   ├── schemas.py                # Pydantic AgentResponse model
-│   └── conversation.py           # Legacy (kept for reference)
+│   └── schemas.py                # Pydantic AgentResponse model
 │
 ├── calendar_service/
 │   ├── google_cal.py             # Google Calendar API wrapper
@@ -92,6 +91,22 @@ appointment-booking-agent/
 ├── tests/
 │   └── test_app.py              # 36 unit + integration tests
 │
+├── docs/                         # All documentation
+│   ├── ARCHITECTURE.md
+│   ├── CONVERSATION_FLOW.md
+│   ├── COST.md
+│   ├── DATABASE.md
+│   ├── DEPLOY.md
+│   ├── FUTURE_PHONE.md
+│   ├── GEMINI_SETUP.md
+│   ├── GOOGLE_CALENDAR_SETUP.md
+│   ├── PLAN.md
+│   ├── RUNNING_THE_BOT.md
+│   ├── TECHNICAL.md
+│   ├── TELEGRAM_SETUP.md
+│   ├── TESTING.md
+│   └── CLIENT_BOOKING_GUIDE.md
+│
 └── credentials/
     └── .gitkeep                  # Service account JSON goes here (gitignored)
 ```
@@ -101,16 +116,13 @@ appointment-booking-agent/
 ## Setup
 
 ### 1. Create Telegram Bot
-
-See [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md) — message [@BotFather](https://t.me/BotFather), send `/newbot`, copy the token.
+See [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) — message [@BotFather](https://t.me/BotFather), send `/newbot`, copy the token.
 
 ### 2. Get Gemini API Key
-
-See [GEMINI_SETUP.md](GEMINI_SETUP.md) — go to [aistudio.google.com](https://aistudio.google.com), free, no credit card.
+See [docs/GEMINI_SETUP.md](docs/GEMINI_SETUP.md) — go to [aistudio.google.com](https://aistudio.google.com), free, no credit card.
 
 ### 3. Set Up Google Calendar
-
-See [GOOGLE_CALENDAR_SETUP.md](GOOGLE_CALENDAR_SETUP.md) — enable API, create service account, share calendar.
+See [docs/GOOGLE_CALENDAR_SETUP.md](docs/GOOGLE_CALENDAR_SETUP.md) — enable API, create service account, share calendar.
 
 ### 4. Install & Run Locally
 
@@ -128,11 +140,10 @@ cp .env.example .env
 python app.py
 ```
 
-See [RUNNING_THE_BOT.md](RUNNING_THE_BOT.md) for ngrok setup and webhook registration.
+See [docs/RUNNING_THE_BOT.md](docs/RUNNING_THE_BOT.md) for ngrok setup and webhook registration.
 
 ### 5. Deploy to Render
-
-See [DEPLOY.md](DEPLOY.md) for the full guide.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for the full guide.
 
 ---
 
@@ -162,7 +173,7 @@ See [.env.example](.env.example) for the full list.
 .venv/bin/python -m pytest tests/ -v
 ```
 
-36 tests covering DB, schemas, LLM routing, Flask routes, webhook handling, admin panel, and error messages. See [TESTING.md](TESTING.md).
+36 tests covering DB, schemas, LLM routing, Flask routes, webhook handling, admin panel, and error messages. See [docs/TESTING.md](docs/TESTING.md).
 
 ---
 
@@ -170,14 +181,16 @@ See [.env.example](.env.example) for the full list.
 
 | File | Contents |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System diagram, request lifecycle, LLM routing |
-| [CONVERSATION_FLOW.md](CONVERSATION_FLOW.md) | Dialog state machine and sample conversation |
-| [COST.md](COST.md) | Cost breakdown for current and future phone stack |
-| [RUNNING_THE_BOT.md](RUNNING_THE_BOT.md) | Run locally with ngrok or deploy to Render |
-| [DEPLOY.md](DEPLOY.md) | Full step-by-step Render deployment guide |
-| [TESTING.md](TESTING.md) | How to run tests and what they cover |
-| [CLIENT_BOOKING_GUIDE.md](CLIENT_BOOKING_GUIDE.md) | How clients start a booking via Telegram |
-| [FUTURE_PHONE.md](FUTURE_PHONE.md) | Migration guide to Twilio phone calling |
-| [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md) | Get Telegram bot token from @BotFather |
-| [GEMINI_SETUP.md](GEMINI_SETUP.md) | Get free Gemini API key |
-| [GOOGLE_CALENDAR_SETUP.md](GOOGLE_CALENDAR_SETUP.md) | Set up Google Calendar service account |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System diagram, request lifecycle, LLM routing |
+| [docs/TECHNICAL.md](docs/TECHNICAL.md) | Code walkthrough, module responsibilities, design decisions |
+| [docs/DATABASE.md](docs/DATABASE.md) | Schema, tables, migrations, query patterns |
+| [docs/CONVERSATION_FLOW.md](docs/CONVERSATION_FLOW.md) | Dialog state machine and sample conversation |
+| [docs/COST.md](docs/COST.md) | Cost breakdown for current and future phone stack |
+| [docs/RUNNING_THE_BOT.md](docs/RUNNING_THE_BOT.md) | Run locally with ngrok or deploy to Render |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Full step-by-step Render deployment guide |
+| [docs/TESTING.md](docs/TESTING.md) | How to run tests and what they cover |
+| [docs/CLIENT_BOOKING_GUIDE.md](docs/CLIENT_BOOKING_GUIDE.md) | How clients start a booking via Telegram |
+| [docs/FUTURE_PHONE.md](docs/FUTURE_PHONE.md) | Migration guide to Twilio phone calling |
+| [docs/TELEGRAM_SETUP.md](docs/TELEGRAM_SETUP.md) | Get Telegram bot token from @BotFather |
+| [docs/GEMINI_SETUP.md](docs/GEMINI_SETUP.md) | Get free Gemini API key |
+| [docs/GOOGLE_CALENDAR_SETUP.md](docs/GOOGLE_CALENDAR_SETUP.md) | Set up Google Calendar service account |
