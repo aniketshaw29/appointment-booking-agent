@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-import sqlite3
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -35,16 +34,31 @@ def check_availability(slot_iso: str) -> bool:
     return len(busy) == 0
 
 
-def create_event(name: str, telegram_user: str | None, slot_iso: str) -> str:
+def create_event(name: str, telegram_user: str | None, slot_iso: str,
+                 age: str | None = None, location: str | None = None,
+                 nature: str | None = None, purpose: str | None = None) -> str:
     """Create a calendar event and return the event ID."""
     tz = ZoneInfo(_TZ)
     start = datetime.fromisoformat(slot_iso).replace(tzinfo=tz)
     end = start + timedelta(minutes=config.APPOINTMENT_DURATION_MINUTES)
 
     contact = f"@{telegram_user}" if telegram_user else "Telegram user"
+    lines = [
+        f"Booked via Telegram bot",
+        f"Contact: {contact}",
+    ]
+    if age:
+        lines.append(f"Age: {age}")
+    if location:
+        lines.append(f"Location: {location}")
+    if nature:
+        lines.append(f"Nature: {nature.capitalize()}")
+    if purpose:
+        lines.append(f"Purpose: {purpose}")
+
     event = {
         "summary": f"Appointment — {name}",
-        "description": f"Booked via Telegram bot\nContact: {contact}",
+        "description": "\n".join(lines),
         "start": {"dateTime": start.isoformat(), "timeZone": _TZ},
         "end": {"dateTime": end.isoformat(), "timeZone": _TZ},
     }
@@ -72,11 +86,10 @@ def next_available_slot(from_iso: str, days_ahead: int = 7) -> str | None:
     result = svc.freebusy().query(body=body).execute()
     busy_blocks = result["calendars"][config.GOOGLE_CALENDAR_ID]["busy"]
 
-    # Walk hour by hour within business hours (9am–5pm)
     candidate = start
     while candidate < end_search:
         hour = candidate.hour
-        if 9 <= hour < 17:  # within business hours
+        if 9 <= hour < 17:
             slot_end = candidate + duration
             conflict = any(
                 datetime.fromisoformat(b["start"]).replace(tzinfo=tz) < slot_end

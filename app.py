@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, abort
 import json
 import hmac
-import hashlib
 from datetime import datetime
 
 import config
@@ -17,10 +16,9 @@ with app.app_context():
 
 
 def _verify_telegram(request) -> bool:
-    """Reject requests that don't come from Telegram."""
     secret = config.TELEGRAM_WEBHOOK_SECRET
     if not secret:
-        return True  # secret not configured — skip validation (dev mode)
+        return True
     token = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
     return hmac.compare_digest(token, secret)
 
@@ -47,30 +45,32 @@ def webhook():
 
     session = get_or_create_session(chat_id)
 
-    # /start resets the conversation
     if text == "/start":
         reset_chat(chat_id)
-        save_session(chat_id, [], "COLLECT_NAME", None, None)
+        save_session(chat_id, [], "COLLECT_NAME")
         send_message(chat_id, f"Hi! I can help you book an appointment at {config.BUSINESS_NAME}. What's your name?")
         return jsonify(ok=True)
 
-    # /cancel ends the conversation
     if text == "/cancel":
         reset_chat(chat_id)
-        save_session(chat_id, [], "COLLECT_NAME", None, None)
-        send_message(chat_id, "No problem! Your booking request has been cancelled. Send /start to begin again.")
+        save_session(chat_id, [], "COLLECT_NAME")
+        send_message(chat_id, "No problem! Booking cancelled. Send /start to begin again.")
         return jsonify(ok=True)
 
-    # Run the user message through Gemini
     try:
         response = process_turn(chat_id, text)
     except Exception:
-        send_message(chat_id, "Sorry, something went wrong on my end. Please try again in a moment.")
+        send_message(chat_id, "Sorry, something went wrong. Please try again in a moment.")
         return jsonify(ok=True)
 
-    name = response.extracted_name or session.get("name")
-    slot = response.proposed_slot or session.get("proposed_slot")
-    reply = response.reply_text
+    # Carry forward all collected fields — keep whatever was already in session
+    name     = response.extracted_name     or session.get("name")
+    age      = response.extracted_age      or session.get("age")
+    location = response.extracted_location or session.get("location")
+    nature   = response.extracted_nature   or session.get("nature")
+    purpose  = response.extracted_purpose  or session.get("purpose")
+    slot     = response.proposed_slot      or session.get("proposed_slot")
+    reply    = response.reply_text
 
     # --- calendar actions ---
     if response.action == "check_availability" and slot:
@@ -93,33 +93,43 @@ def webhook():
                     f"The next available time is {_fmt(alt)} — would that work for you?"
                 )
             else:
-                reply = "Sorry, I couldn't find a free slot in the next 7 days. Please try a different date or time."
+                reply = "Sorry, no free slots in the next 7 days. Please try a different time."
         else:
-            reply = "I had trouble checking the calendar right now. Please try again in a moment."
+            reply = "I had trouble checking the calendar. Please try again."
 
     elif response.action == "book" and slot:
         try:
-            event_id = create_event(name or "Guest", username, slot)
-            create_booking(chat_id, name or "Guest", username, slot, event_id)
+            event_id = create_event(
+                name or "Guest", username, slot,
+                age=age, location=location, nature=nature, purpose=purpose
+            )
+            create_booking(
+                chat_id, name or "Guest", username, slot, event_id,
+                age=age, location=location, nature=nature, purpose=purpose
+            )
             reply = (
                 f"Done! Your appointment is confirmed for {_fmt(slot)}. "
                 f"A calendar invite has been created. See you then! 🎉\n\n"
                 f"Send /start to book another appointment."
             )
             reset_chat(chat_id)
+            save_session(chat_id, [], "COLLECT_NAME")
+            send_message(chat_id, reply)
+            return jsonify(ok=True)
         except Exception:
             reply = "I couldn't complete the booking. Please try again."
 
     elif response.action == "done":
         reset_chat(chat_id)
-        save_session(chat_id, [], "COLLECT_NAME", None, None)
+        save_session(chat_id, [], "COLLECT_NAME")
 
-    # Persist updated session
     history = json.loads(session.get("history", "[]"))
     history.append({"role": "user", "content": text})
     history.append({"role": "assistant", "content": reply})
 
-    save_session(chat_id, history, response.action.upper(), name, slot)
+    save_session(chat_id, history, response.action.upper(),
+                 name=name, age=age, location=location,
+                 nature=nature, purpose=purpose, proposed_slot=slot)
     send_message(chat_id, reply)
     return jsonify(ok=True)
 

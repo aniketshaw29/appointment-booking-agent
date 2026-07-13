@@ -21,18 +21,26 @@ def init_db() -> None:
     with _conn() as con:
         con.executescript("""
             CREATE TABLE IF NOT EXISTS sessions (
-                chat_id     INTEGER PRIMARY KEY,
-                history     TEXT    NOT NULL DEFAULT '[]',
-                state       TEXT    NOT NULL DEFAULT 'COLLECT_NAME',
-                name        TEXT,
+                chat_id       INTEGER PRIMARY KEY,
+                history       TEXT    NOT NULL DEFAULT '[]',
+                state         TEXT    NOT NULL DEFAULT 'COLLECT_NAME',
+                name          TEXT,
+                age           TEXT,
+                location      TEXT,
+                nature        TEXT,
+                purpose       TEXT,
                 proposed_slot TEXT,
-                updated_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+                updated_at    TEXT    NOT NULL DEFAULT (datetime('now'))
             );
 
             CREATE TABLE IF NOT EXISTS bookings (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
                 chat_id         INTEGER NOT NULL,
                 name            TEXT    NOT NULL,
+                age             TEXT,
+                location        TEXT,
+                nature          TEXT,
+                purpose         TEXT,
                 telegram_user   TEXT,
                 slot_dt         TEXT    NOT NULL,
                 google_event_id TEXT,
@@ -60,40 +68,55 @@ def get_or_create_session(chat_id: int) -> dict:
             "history": "[]",
             "state": "COLLECT_NAME",
             "name": None,
+            "age": None,
+            "location": None,
+            "nature": None,
+            "purpose": None,
             "proposed_slot": None,
         }
 
 
 def save_session(chat_id: int, history: list, state: str,
-                 name: str | None = None, proposed_slot: str | None = None) -> None:
+                 name: str | None = None,
+                 age: str | None = None,
+                 location: str | None = None,
+                 nature: str | None = None,
+                 purpose: str | None = None,
+                 proposed_slot: str | None = None) -> None:
     with _conn() as con:
         con.execute(
             """
-            INSERT INTO sessions (chat_id, history, state, name, proposed_slot, updated_at)
-            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO sessions (chat_id, history, state, name, age, location, nature, purpose, proposed_slot, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(chat_id) DO UPDATE SET
                 history       = excluded.history,
                 state         = excluded.state,
                 name          = excluded.name,
+                age           = excluded.age,
+                location      = excluded.location,
+                nature        = excluded.nature,
+                purpose       = excluded.purpose,
                 proposed_slot = excluded.proposed_slot,
                 updated_at    = excluded.updated_at
             """,
-            (chat_id, json.dumps(history), state, name, proposed_slot),
+            (chat_id, json.dumps(history), state, name, age, location, nature, purpose, proposed_slot),
         )
 
 
 # ---------- booking helpers ----------
 
 def create_booking(chat_id: int, name: str, telegram_user: str | None,
-                   slot_dt: str, google_event_id: str | None = None) -> int:
+                   slot_dt: str, google_event_id: str | None = None,
+                   age: str | None = None, location: str | None = None,
+                   nature: str | None = None, purpose: str | None = None) -> int:
     with _conn() as con:
         cur = con.execute(
             """
             INSERT OR IGNORE INTO bookings
-                (chat_id, name, telegram_user, slot_dt, google_event_id)
-            VALUES (?, ?, ?, ?, ?)
+                (chat_id, name, telegram_user, slot_dt, google_event_id, age, location, nature, purpose)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (chat_id, name, telegram_user, slot_dt, google_event_id),
+            (chat_id, name, telegram_user, slot_dt, google_event_id, age, location, nature, purpose),
         )
         return cur.lastrowid
 

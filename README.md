@@ -122,6 +122,7 @@ curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<ngrok-url
 | [CONVERSATION_FLOW.md](CONVERSATION_FLOW.md) | Dialog state machine and sample conversation |
 | [COST.md](COST.md) | Cost analysis and free tier breakdown |
 | [DEPLOY.md](DEPLOY.md) | Deploy to Render free tier |
+| [CLIENT_BOOKING_GUIDE.md](CLIENT_BOOKING_GUIDE.md) | How clients can start a booking via Telegram |
 | [FUTURE_PHONE.md](FUTURE_PHONE.md) | Migration guide to phone calling with Twilio |
 | [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md) | Get your Telegram bot token from @BotFather |
 | [GEMINI_SETUP.md](GEMINI_SETUP.md) | Get your free Gemini API key |
