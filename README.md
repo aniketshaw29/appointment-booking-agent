@@ -2,6 +2,8 @@
 
 An AI-powered appointment booking bot built with Telegram, Google Gemini Flash, and Google Calendar. Users chat with the bot naturally to book appointments — the AI handles the conversation, checks calendar availability, and confirms the booking.
 
+**Telegram:** [@aniketshaw_appointment_bot](https://t.me/aniketshaw_appointment_bot)
+
 > **Future upgrade:** Swap the Telegram layer for Twilio to turn this into a real phone calling agent. See [FUTURE_PHONE.md](FUTURE_PHONE.md).
 
 ---
