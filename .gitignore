@@ -1,7 +1,37 @@
+# Environment
 .env
+.env.*
+
+# Credentials (never commit service account keys)
 credentials/*.json
+
+# Python
 *.pyc
+*.pyo
 __pycache__/
-.DS_Store
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Database
 *.db
 *.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Render / deployment
+.render-build-dir/
