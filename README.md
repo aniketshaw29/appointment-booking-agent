@@ -21,7 +21,7 @@ An AI-powered appointment booking bot built with Telegram, Google Gemini Flash, 
 | Component | Tech | Cost |
 |---|---|---|
 | Messaging | Telegram Bot API | Free |
-| AI / LLM | Google Gemini 2.0 Flash | Free tier |
+| AI / LLM | Google Gemini 2.5 Flash | Free tier |
 | Calendar | Google Calendar API | Free |
 | Database | SQLite | Free |
 | Backend | Python + Flask | Free |

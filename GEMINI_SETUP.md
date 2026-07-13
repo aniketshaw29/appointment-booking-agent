@@ -48,7 +48,7 @@ os.environ["GEMINI_API_KEY"] = "your-key-here"
 
 import google.generativeai as genai
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-model = genai.GenerativeModel("gemini-2.0-flash")
+model = genai.GenerativeModel("gemini-2.5-flash")
 resp = model.generate_content("Say hello in one word")
 print(f"✅ Gemini response: {resp.text.strip()}")
 EOF
