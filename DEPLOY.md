@@ -29,15 +29,20 @@ Render's free tier keeps the bot running 24/7 at no cost. No credit card require
 
 In the Render dashboard → **Environment** tab, add each of these:
 
-| Key | Value |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | Your bot token from @BotFather |
-| `GEMINI_API_KEY` | Your key from aistudio.google.com |
-| `GOOGLE_CALENDAR_ID` | `aniketshawoffice@gmail.com` |
-| `BUSINESS_NAME` | `Aniket Shaw` |
-| `BUSINESS_HOURS` | `Monday-Friday, 5pm-9pm` |
-| `APPOINTMENT_DURATION_MINUTES` | `30` |
-| `TELEGRAM_WEBHOOK_SECRET` | Any random string — e.g. `apptbot2026` (save this, you need it in Step 6) |
+| Key | Required | Value |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | ✅ | Your bot token from @BotFather |
+| `GEMINI_API_KEY` | ✅ | Your key from aistudio.google.com |
+| `GOOGLE_CALENDAR_ID` | ✅ | `aniketshawoffice@gmail.com` |
+| `BUSINESS_NAME` | ✅ | `Aniket Shaw` |
+| `BUSINESS_HOURS` | ✅ | `Monday-Friday, 5pm-9pm` |
+| `APPOINTMENT_DURATION_MINUTES` | ✅ | `30` |
+| `ADMIN_PASSWORD` | ✅ | A strong password for the `/admin` panel |
+| `ACTIVE_MODEL` | ❌ | Default AI model (default: `gemini-2.5-flash`) — see options below |
+| `OPENAI_API_KEY` | ❌ | Only needed if you want to use GPT-4o / GPT-4o-mini |
+| `TELEGRAM_WEBHOOK_SECRET` | ❌ | Any random string to validate Telegram webhooks |
+
+**`ACTIVE_MODEL` options:** `gemini-2.5-flash`, `gemini-2.0-flash`, `gpt-4o-mini`, `gpt-4o`
 
 > ⚠️ Do **not** add `GOOGLE_SERVICE_ACCOUNT_FILE` — it's handled automatically via the Secret File in Step 4.
 
