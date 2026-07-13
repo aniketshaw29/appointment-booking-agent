@@ -47,9 +47,11 @@ In the Render dashboard → **Environment** tab, add each of these:
 The service account JSON can't go in the repo (it's gitignored). Add it as a **Secret File** on Render:
 
 1. Render dashboard → your service → **Environment** → **Secret Files**
-2. **Filename:** `credentials/service_account.json`
+2. **Filename:** `service_account.json` (no folder path — Render doesn't allow `/` in filenames)
 3. **Contents:** paste the full JSON from your downloaded service account file
 4. Save
+
+Render places it at `/etc/secrets/service_account.json` which `config.py` reads automatically — no env var needed for this.
 
 ---
 

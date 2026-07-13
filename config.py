@@ -13,8 +13,14 @@ def _require(name: str) -> str:
 
 TELEGRAM_BOT_TOKEN = _require("TELEGRAM_BOT_TOKEN")
 GEMINI_API_KEY = _require("GEMINI_API_KEY")
-GOOGLE_SERVICE_ACCOUNT_FILE = _require("GOOGLE_SERVICE_ACCOUNT_FILE")
 GOOGLE_CALENDAR_ID = _require("GOOGLE_CALENDAR_ID")
+
+# Local dev: set GOOGLE_SERVICE_ACCOUNT_FILE=credentials/service_account.json in .env
+# Render: add as Secret File with filename "service_account.json" — it lands at /etc/secrets/service_account.json
+GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv(
+    "GOOGLE_SERVICE_ACCOUNT_FILE",
+    "/etc/secrets/service_account.json"
+)
 
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "Our Business")
 BUSINESS_HOURS = os.getenv("BUSINESS_HOURS", "Monday-Friday, 9am-5pm")
