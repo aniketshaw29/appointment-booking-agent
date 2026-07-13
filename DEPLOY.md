@@ -63,8 +63,8 @@ The service account JSON can't go in the repo (it's gitignored). Add it as a **S
 ## Step 5 — Deploy
 
 1. Click **Deploy** — Render builds and starts the service (~2 minutes)
-2. Watch the build logs — you should see `Serving Flask app 'app'` at the end
-3. Copy your service URL: `https://appointment-booking-agent.onrender.com`
+2. Watch the build logs — you should see `Your service is live 🎉` at the end
+3. Live URL: `https://appointment-booking-agent-p748.onrender.com`
 
 If the build fails, check the logs for missing env vars.
 
@@ -72,10 +72,16 @@ If the build fails, check the logs for missing env vars.
 
 ## Step 6 — Register Telegram Webhook
 
-Run this **once** (replace the placeholders):
+Run this **once** — replace `<YOUR_BOT_TOKEN>` with your token from @BotFather:
 
 ```bash
-curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://appointment-booking-agent.onrender.com/webhook&secret_token=<YOUR_WEBHOOK_SECRET>"
+curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://appointment-booking-agent-p748.onrender.com/webhook"
+```
+
+If you set a `TELEGRAM_WEBHOOK_SECRET`, add it:
+
+```bash
+curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook?url=https://appointment-booking-agent-p748.onrender.com/webhook&secret_token=<YOUR_WEBHOOK_SECRET>"
 ```
 
 Expected response:
@@ -85,7 +91,7 @@ Expected response:
 
 Verify:
 ```bash
-curl "https://api.telegram.org/bot<YOUR_TOKEN>/getWebhookInfo"
+curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"
 ```
 
 ---
