@@ -54,7 +54,7 @@ appointment-booking-agent/
 │   └── telegram_sender.py       # Telegram sendMessage helper
 │
 └── credentials/
-    └── .gitkeep                  # Put Google service account JSON here
+    └── .gitkeep                  # Put Google service account JSON here (gitignored)
 ```
 
 ---
@@ -63,25 +63,28 @@ appointment-booking-agent/
 
 ### 1. Create Telegram Bot
 
-1. Open Telegram, message [@BotFather](https://t.me/BotFather)
-2. Send `/newbot` and follow the prompts
-3. Copy the bot token
+See [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md) for the full step-by-step guide.
+
+Quick summary:
+1. Message [@BotFather](https://t.me/BotFather) on Telegram
+2. Send `/newbot` → follow prompts → copy the token
 
 ### 2. Get Gemini API Key
 
-1. Go to [aistudio.google.com](https://aistudio.google.com)
-2. Sign in with Google (free, no credit card)
-3. Click **Get API Key** → Create API key
-4. Copy the key
+See [GEMINI_SETUP.md](GEMINI_SETUP.md) for the full step-by-step guide.
+
+Quick summary:
+1. Go to [aistudio.google.com](https://aistudio.google.com) — free, no credit card
+2. Click **Get API Key** → create key in your project → copy it
 
 ### 3. Set Up Google Calendar
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create a project → Enable **Google Calendar API**
-3. Create a **Service Account** → Download JSON key
-4. Place JSON file at `credentials/service_account.json`
-5. Share your Google Calendar with the service account email (give it edit access)
-6. Copy your calendar ID (Settings → Integrate calendar)
+See [GOOGLE_CALENDAR_SETUP.md](GOOGLE_CALENDAR_SETUP.md) for the full step-by-step guide.
+
+Quick summary:
+1. Enable Google Calendar API in Cloud Console
+2. Create a Service Account → download JSON key → place at `credentials/service_account.json`
+3. Share your calendar with `aniket-appointment-bot@aniket-appointment-booking-app.iam.gserviceaccount.com`
 
 ### 4. Install & Run
 
@@ -90,7 +93,8 @@ appointment-booking-agent/
 git clone https://github.com/aniketshaw29/appointment-booking-agent.git
 cd appointment-booking-agent
 
-# Install dependencies
+# Install dependencies (use Python 3.12)
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # Set up environment
@@ -117,7 +121,11 @@ curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<ngrok-url
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System diagram and request lifecycle |
 | [CONVERSATION_FLOW.md](CONVERSATION_FLOW.md) | Dialog state machine and sample conversation |
 | [COST.md](COST.md) | Cost analysis and free tier breakdown |
+| [DEPLOY.md](DEPLOY.md) | Deploy to Render free tier |
 | [FUTURE_PHONE.md](FUTURE_PHONE.md) | Migration guide to phone calling with Twilio |
+| [TELEGRAM_SETUP.md](TELEGRAM_SETUP.md) | Get your Telegram bot token from @BotFather |
+| [GEMINI_SETUP.md](GEMINI_SETUP.md) | Get your free Gemini API key |
+| [GOOGLE_CALENDAR_SETUP.md](GOOGLE_CALENDAR_SETUP.md) | Set up Google Calendar service account |
 
 ---
 
@@ -126,8 +134,8 @@ curl "https://api.telegram.org/bot<YOUR_TOKEN>/setWebhook?url=https://<ngrok-url
 See [.env.example](.env.example) for the full list. Required:
 
 ```
-TELEGRAM_BOT_TOKEN     — from @BotFather
-GEMINI_API_KEY         — from aistudio.google.com
-GOOGLE_CALENDAR_ID     — your calendar ID
-GOOGLE_SERVICE_ACCOUNT_FILE — path to service account JSON
+TELEGRAM_BOT_TOKEN          — from @BotFather  → TELEGRAM_SETUP.md
+GEMINI_API_KEY              — from aistudio.google.com  → GEMINI_SETUP.md
+GOOGLE_CALENDAR_ID          — your calendar ID  → GOOGLE_CALENDAR_SETUP.md
+GOOGLE_SERVICE_ACCOUNT_FILE — path to service account JSON  → GOOGLE_CALENDAR_SETUP.md
 ```
