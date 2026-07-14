@@ -148,9 +148,13 @@ def _parse_response(raw: str) -> AgentResponse:
             raw = raw[4:]
         raw = raw.strip()
     try:
-        return AgentResponse(**json.loads(raw))
+        obj = AgentResponse(**json.loads(raw))
+        obj.raw_json = raw   # keep the original JSON for history rebuilding
+        return obj
     except (json.JSONDecodeError, ValueError):
-        return AgentResponse(
+        fallback = AgentResponse(
             reply_text="Sorry, I didn't quite catch that. Could you rephrase?",
             action="clarify",
         )
+        fallback.raw_json = json.dumps({"reply_text": fallback.reply_text, "action": "clarify"})
+        return fallback

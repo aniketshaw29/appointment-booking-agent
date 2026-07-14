@@ -176,7 +176,8 @@ def webhook():
 
     history = json.loads(sess.get("history", "[]"))
     history.append({"role": "user", "content": text})
-    history.append({"role": "assistant", "content": reply})
+    # Store raw JSON as assistant content — Gemini needs this to stay in JSON mode
+    history.append({"role": "assistant", "content": response.raw_json or reply})
 
     save_session(chat_id, history, response.action.upper(),
                  name=name, age=age, location=location,
