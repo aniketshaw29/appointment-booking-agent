@@ -10,4 +10,5 @@ class AgentResponse(BaseModel):
     extracted_location: str | None = None
     extracted_nature: str | None = None      # work | business | casual | other
     extracted_purpose: str | None = None     # free-text purpose of meeting
+    extracted_duration: str | None = None    # duration in minutes e.g. "15"
     proposed_slot: str | None = None

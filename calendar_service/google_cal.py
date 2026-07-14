@@ -25,14 +25,15 @@ def _service():
 
 
 def _validate_slot(slot_iso: str) -> datetime:
-    """Parse slot and raise CalendarError if it's in the past."""
+    """Parse slot and raise BookingConflictError if it's in the past (IST)."""
     tz = ZoneInfo(_TZ)
     try:
         dt = datetime.fromisoformat(slot_iso).replace(tzinfo=tz)
     except ValueError as e:
         raise CalendarError(f"Invalid slot format: {slot_iso}") from e
 
-    if dt < datetime.now(tz):
+    now_ist = datetime.now(tz)
+    if dt < now_ist:
         raise BookingConflictError("slot_in_past")
     return dt
 
@@ -65,11 +66,21 @@ def check_availability(slot_iso: str) -> bool:
 
 def create_event(name: str, telegram_user: str | None, slot_iso: str,
                  age: str | None = None, location: str | None = None,
-                 nature: str | None = None, purpose: str | None = None) -> str:
+                 nature: str | None = None, purpose: str | None = None,
+                 duration: str | None = None) -> str:
     """Create a calendar event and return the event ID."""
     tz = ZoneInfo(_TZ)
     start = _validate_slot(slot_iso)
-    end = start + timedelta(minutes=config.APPOINTMENT_DURATION_MINUTES)
+
+    # Use user-requested duration, clamped to config max
+    dur_mins = config.APPOINTMENT_DURATION_MINUTES
+    if duration:
+        try:
+            requested = int(duration)
+            dur_mins = min(max(requested, 5), config.APPOINTMENT_DURATION_MINUTES)
+        except ValueError:
+            pass
+    end = start + timedelta(minutes=dur_mins)
 
     contact = f"@{telegram_user}" if telegram_user else "Telegram user"
     lines = ["Booked via Telegram bot", f"Contact: {contact}"]

@@ -25,7 +25,7 @@ GOOGLE_SERVICE_ACCOUNT_FILE = os.getenv(
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "Our Business")
 BUSINESS_HOURS = os.getenv("BUSINESS_HOURS", "Monday-Friday, 9am-5pm")
 _raw_duration = int(os.getenv("APPOINTMENT_DURATION_MINUTES", "30"))
-APPOINTMENT_DURATION_MINUTES = min(_raw_duration, 30)
+APPOINTMENT_DURATION_MINUTES = min(max(_raw_duration, 5), 30)  # clamp 5–30 min
 
 TELEGRAM_WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
 

@@ -23,6 +23,9 @@ _active_model = config.ACTIVE_MODEL
 
 with app.app_context():
     init_db()
+    import os
+    cred_path = config.GOOGLE_SERVICE_ACCOUNT_FILE
+    logger.info("Service account path: %s — exists: %s", cred_path, os.path.exists(cred_path))
 
 
 def _verify_telegram(req) -> bool:
@@ -82,7 +85,8 @@ def webhook():
         return jsonify(ok=True)
 
     try:
-        response = process_turn(chat_id, text, model_id=_active_model)
+        history = json.loads(sess.get("history", "[]"))
+        response = process_turn(chat_id, text, model_id=_active_model, history=history)
     except GeminiQuotaError:
         send_message(chat_id, MESSAGES["gemini_quota"])
         return jsonify(ok=True)
@@ -100,6 +104,7 @@ def webhook():
     location = response.extracted_location or sess.get("location")
     nature   = response.extracted_nature   or sess.get("nature")
     purpose  = response.extracted_purpose  or sess.get("purpose")
+    duration = response.extracted_duration or sess.get("duration")
     slot     = response.proposed_slot      or sess.get("proposed_slot")
     reply    = response.reply_text
 
@@ -134,11 +139,13 @@ def webhook():
         try:
             event_id = create_event(
                 name or "Guest", username, slot,
-                age=age, location=location, nature=nature, purpose=purpose
+                age=age, location=location, nature=nature, purpose=purpose,
+                duration=duration
             )
             create_booking(
                 chat_id, name or "Guest", username, slot, event_id,
-                age=age, location=location, nature=nature, purpose=purpose
+                age=age, location=location, nature=nature, purpose=purpose,
+                duration=duration
             )
             logger.info("Booking confirmed: chat_id=%s name=%s slot=%s model=%s",
                         chat_id, name, slot, _active_model)
@@ -173,7 +180,8 @@ def webhook():
 
     save_session(chat_id, history, response.action.upper(),
                  name=name, age=age, location=location,
-                 nature=nature, purpose=purpose, proposed_slot=slot)
+                 nature=nature, purpose=purpose, duration=duration,
+                 proposed_slot=slot)
     send_message(chat_id, reply)
     return jsonify(ok=True)
 

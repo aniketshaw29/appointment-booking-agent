@@ -54,10 +54,12 @@ def init_db() -> None:
         _add_column_if_missing(con, "sessions", "location", "TEXT")
         _add_column_if_missing(con, "sessions", "nature", "TEXT")
         _add_column_if_missing(con, "sessions", "purpose", "TEXT")
+        _add_column_if_missing(con, "sessions", "duration", "TEXT")
         _add_column_if_missing(con, "bookings", "age", "TEXT")
         _add_column_if_missing(con, "bookings", "location", "TEXT")
         _add_column_if_missing(con, "bookings", "nature", "TEXT")
         _add_column_if_missing(con, "bookings", "purpose", "TEXT")
+        _add_column_if_missing(con, "bookings", "duration", "TEXT")
 
 
 def _add_column_if_missing(con: sqlite3.Connection, table: str, column: str, col_type: str) -> None:
@@ -82,11 +84,8 @@ def get_or_create_session(chat_id: int) -> dict:
             "chat_id": chat_id,
             "history": "[]",
             "state": "COLLECT_NAME",
-            "name": None,
-            "age": None,
-            "location": None,
-            "nature": None,
-            "purpose": None,
+            "name": None, "age": None, "location": None,
+            "nature": None, "purpose": None, "duration": None,
             "proposed_slot": None,
         }
 
@@ -97,12 +96,13 @@ def save_session(chat_id: int, history: list, state: str,
                  location: str | None = None,
                  nature: str | None = None,
                  purpose: str | None = None,
+                 duration: str | None = None,
                  proposed_slot: str | None = None) -> None:
     with _conn() as con:
         con.execute(
             """
-            INSERT INTO sessions (chat_id, history, state, name, age, location, nature, purpose, proposed_slot, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            INSERT INTO sessions (chat_id, history, state, name, age, location, nature, purpose, duration, proposed_slot, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(chat_id) DO UPDATE SET
                 history       = excluded.history,
                 state         = excluded.state,
@@ -111,10 +111,11 @@ def save_session(chat_id: int, history: list, state: str,
                 location      = excluded.location,
                 nature        = excluded.nature,
                 purpose       = excluded.purpose,
+                duration      = excluded.duration,
                 proposed_slot = excluded.proposed_slot,
                 updated_at    = excluded.updated_at
             """,
-            (chat_id, json.dumps(history), state, name, age, location, nature, purpose, proposed_slot),
+            (chat_id, json.dumps(history), state, name, age, location, nature, purpose, duration, proposed_slot),
         )
 
 
@@ -123,15 +124,16 @@ def save_session(chat_id: int, history: list, state: str,
 def create_booking(chat_id: int, name: str, telegram_user: str | None,
                    slot_dt: str, google_event_id: str | None = None,
                    age: str | None = None, location: str | None = None,
-                   nature: str | None = None, purpose: str | None = None) -> int:
+                   nature: str | None = None, purpose: str | None = None,
+                   duration: str | None = None) -> int:
     with _conn() as con:
         cur = con.execute(
             """
             INSERT OR IGNORE INTO bookings
-                (chat_id, name, telegram_user, slot_dt, google_event_id, age, location, nature, purpose)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (chat_id, name, telegram_user, slot_dt, google_event_id, age, location, nature, purpose, duration)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (chat_id, name, telegram_user, slot_dt, google_event_id, age, location, nature, purpose),
+            (chat_id, name, telegram_user, slot_dt, google_event_id, age, location, nature, purpose, duration),
         )
         return cur.lastrowid
 
